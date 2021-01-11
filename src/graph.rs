@@ -66,9 +66,9 @@ impl<A:Copy + Clone> Graph for GraphVec<A> {
 }
  
 pub struct GraphVecIter<A> {
-    //buf: NonNull<Option<A>>,
+    // buf: NonNull<Option<A>>,
     // phantom: PhantomData<A>,
-    //cap: usize,
+    // cap: usize,
     ptr: *const Option<A>,
     end: *const Option<A>,
     count: usize,
