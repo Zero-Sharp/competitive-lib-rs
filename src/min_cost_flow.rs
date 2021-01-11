@@ -85,7 +85,7 @@ impl<A,B,U> MinCostFlowST<A,U>
 
 
 #[test]
-fn test1() {
+fn test1vec() {
     use crate::graph::GraphVec;
     let mut graph = GraphVec::new(5);
     graph.add_edge(0,1,(10,2));
@@ -96,6 +96,50 @@ fn test1() {
     graph.add_edge(2,4,(5,2));
     graph.add_edge(3,4,(8,6));
     let problem: Option<(i64,GraphVec<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
+    match problem {
+        None => unreachable!(),
+        Some(xx) => {
+            assert_eq!(80,xx.0);
+        }
+    }
+}
+
+#[test]
+fn test1set() {
+    use crate::graph::GraphSet;
+    let mut graph = GraphSet::new(5);
+    dbg!(&graph);
+    graph.add_edge(0,1,(10,2));
+    dbg!(&graph);
+    graph.add_edge(0,2,(2,4));
+    graph.add_edge(1,2,(6,6));
+    graph.add_edge(1,3,(6,2));
+    graph.add_edge(3,2,(3,3));
+    graph.add_edge(2,4,(5,2));
+    graph.add_edge(3,4,(8,6));
+    dbg!(&graph);
+    let problem: Option<(i64,GraphSet<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
+    match problem {
+        None => unreachable!(),
+        Some(xx) => {
+            assert_eq!(80,xx.0);
+        }
+    }
+}
+
+#[test]
+fn test1map() {
+    use crate::graph::GraphMap;
+    let mut graph = GraphMap::new(5);
+    graph.add_edge(0,1,(10,2));
+    graph.add_edge(0,2,(2,4));
+    graph.add_edge(1,2,(6,6));
+    graph.add_edge(1,3,(6,2));
+    graph.add_edge(3,2,(3,3));
+    graph.add_edge(2,4,(5,2));
+    graph.add_edge(3,4,(8,6));
+    dbg!(&graph);
+    let problem: Option<(i64,GraphMap<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
     match problem {
         None => unreachable!(),
         Some(xx) => {

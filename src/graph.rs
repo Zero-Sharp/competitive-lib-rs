@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::collections::{BTreeSet,BTreeMap};
 //use std::marker::PhantomData;
 //use std::ptr::NonNull;
@@ -106,12 +107,15 @@ pub struct GraphSetIter<A> {
     iter: std::collections::btree_set::IntoIter<usize>
 }
 
-impl<A: Copy> Iterator for GraphSetIter<A> {
+impl<A: Copy + Debug> Iterator for GraphSetIter<A> {
     type Item = (usize,A);
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(entry) => Some((entry,self.vec.borrow()[entry].unwrap())),
+            Some(entry) => {
+                // dbg!("{:?}",self.vec.borrow()[entry]);
+                Some((entry,self.vec.borrow()[entry].unwrap()))
+            },
             None => None
         }
     }
@@ -122,9 +126,13 @@ impl<A: Copy + Clone> Graph for GraphSet<A> {
     type Iterator = GraphSetIter<A>;
     fn new(size: usize) -> Self {
         GraphSet {
-            mat: vec![Rc::new(RefCell::new(vec![None;size]));size],
+            mat: vec![vec![None;size];size].into_iter().map(|v| Rc::new(RefCell::new(v))).collect(),
             entries: vec![BTreeSet::new();size]
         }
+    }
+    fn add_edge(&mut self, u: usize, v: usize, w: A)  {
+        self.mat[u].borrow_mut()[v] = Some(w);
+        self.entries[u].insert(v);
     }
     fn extend(&mut self) {
         self.mat.push(Rc::new(RefCell::new(Vec::new())));
@@ -137,10 +145,6 @@ impl<A: Copy + Clone> Graph for GraphSet<A> {
     fn len(&self) -> usize {
         self.mat.len()
     }
-    fn add_edge(&mut self, u: usize, v: usize, w: A)  {
-        self.mat[u].borrow_mut()[v] = Some(w);
-        self.entries[u].insert(v);
-    }
     fn remove(&mut self, u: usize, v: usize) {
         self.mat[u].borrow_mut()[v] = None;
         self.entries[u].remove(&v);
@@ -148,19 +152,11 @@ impl<A: Copy + Clone> Graph for GraphSet<A> {
     fn modify(&mut self, u: usize, v: usize, update: impl Fn(Option<A>) -> Option<A>) {
         let xx = self.mat[u].borrow()[v];
         let ret = update(xx);
-        match xx {
-            Some(_) => {
-                self.mat[u].borrow_mut()[v] = ret;
-                if ret.is_none() {
-                    self.entries[u].remove(&v);
-                }
-            }
-            None => {
-                self.mat[u].borrow_mut()[v] = ret;
-                if !ret.is_none() {
-                    self.entries[u].insert(v);
-                }
-            }
+        self.mat[u].borrow_mut()[v] = ret;
+        if ret.is_none() {
+            self.entries[u].remove(&v);
+        } else {
+            self.entries[u].insert(v);
         }
     }
     fn is_edge(&self, u: usize, v: usize) -> bool {
