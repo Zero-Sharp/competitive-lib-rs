@@ -108,9 +108,7 @@ fn test1vec() {
 fn test1set() {
     use crate::graph::GraphSet;
     let mut graph = GraphSet::new(5);
-    dbg!(&graph);
     graph.add_edge(0,1,(10,2));
-    dbg!(&graph);
     graph.add_edge(0,2,(2,4));
     graph.add_edge(1,2,(6,6));
     graph.add_edge(1,3,(6,2));

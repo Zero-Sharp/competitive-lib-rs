@@ -113,7 +113,6 @@ impl<A: Copy + Debug> Iterator for GraphSetIter<A> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
             Some(entry) => {
-                // dbg!("{:?}",self.vec.borrow()[entry]);
                 Some((entry,self.vec.borrow()[entry].unwrap()))
             },
             None => None
