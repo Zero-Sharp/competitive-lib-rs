@@ -173,7 +173,7 @@ impl<A: Copy + Clone> Graph for GraphSet<A> {
 }
 
 #[derive(Debug,Clone)]
-pub struct GraphMap<A>(Vec<BTreeMap<usize,A>>);
+pub struct GraphMap<A>(Vec<BTreeMap<usize,Option<A>>>);
 
 impl<A: Copy> Graph for GraphMap<A> {
     type Item = A;
@@ -191,39 +191,53 @@ impl<A: Copy> Graph for GraphMap<A> {
         self.0.len()
     }
     fn add_edge(&mut self, u: usize, v: usize, w: A)  {
-        self.0[u].insert(v,w);
+        self.0[u].insert(v,Some(w));
     }
     fn remove(&mut self, u: usize, v: usize) {
         self.0[u].remove(&v);
     }
     fn modify(&mut self, u: usize, v: usize, update: impl Fn(Option<A>) -> Option<A>) {
-        let ret = update(self.0[u].get(&v).map(|&x| x));
-        match ret {
-            Some(x) => {
-                self.0[u].insert(v,x);
-            }
+        match self.0[u].get(&v).map(|&x| x) {
             None => {
-                self.0[u].remove(&v);
+                let ret = update(None);
+                self.0[u].insert(v,ret);
+            },
+            Some(x) => {
+                *self.0[u].entry(v).or_insert(None) = update(x);
             }
         }
     }
     fn is_edge(&self, u: usize, v: usize) -> bool {
-        self.0[u].contains_key(&v)
+        let xx = self.0[u].get(&v).map(|&x| x);
+        if xx.is_none() {
+            return false
+        }
+        !xx.unwrap().is_none()
     }
     fn get(&self, u: usize, v: usize) -> Option<A> {
-        self.0[u].get(&v).map(|&x| x)
+        let xx = self.0[u].get(&v).map(|&x| x);
+        if xx.is_none() {
+            return None
+        }
+        xx.unwrap()
     }
     fn iter(&self, entry: usize) -> Self::Iterator {
-        GraphMapIter(self.0[entry].clone().into_iter())
+        GraphMapIter(self.0[entry].clone().into_iter(),0)
     }
 }
 
-pub struct GraphMapIter<A>(std::collections::btree_map::IntoIter<usize,A>);
+pub struct GraphMapIter<A>(std::collections::btree_map::IntoIter<usize,Option<A>>,usize);
 
 impl<A: Copy> Iterator for GraphMapIter<A> {
     type Item = (usize,A);
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        loop {
+            match self.0.next() {
+                None => return None,
+                Some((_,None)) => {},
+                Some((x,Some(y))) => return Some((x,y))
+            }
+        }
     }
 }
