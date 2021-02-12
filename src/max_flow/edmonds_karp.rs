@@ -1,51 +1,44 @@
 use num::Zero;
 use std::ops::{Add,AddAssign,SubAssign,Sub};
 use std::collections::VecDeque;
-use crate::graph::Graph;
+use crate::graph::AccGraph;
 
-pub fn solve<A,B,U>(
+pub fn solve<A,U>(
     graph: &A,
     s: usize,
     t: usize,
 ) -> A
-where A: Graph<Item = U, Iterator = B>,
-      B: Iterator<Item = (usize,U)>,
+where A: AccGraph<Value = U>,
     U: Copy + Ord + Add + Sub<Output = U> + Zero + AddAssign + SubAssign,
 {
-    let size = graph.len();
-    let mut flow: A = Graph::new(size);
+    let size = graph.size();
+    let mut flow: A = graph.clone();
     for from in 0..size {
-        for (to, _) in graph.iter(from) {
+        for (to, _) in graph.neighbors(from) {
             flow.add_edge(from,to,U::zero());
         }
     }
-    let mut res: A = Graph::new(size);
-    for from in 0..size {
-        for (to, weight) in graph.iter(from) {
-            res.add_edge(from,to, weight);
-        }
-    }
+    let mut res: A= graph.clone();
     while let Some((pass, min)) = bfs(size, &res, s, t) {
         augment_along_pass(&pass, &mut flow, &mut res, min, graph);
     }
     flow
 }
 
-fn bfs<A,B,U>(
+fn bfs<A,U>(
     size: usize,
     res: &A,
     s: usize,
     t: usize,
 ) -> Option<(Vec<(usize, usize)>, U)>
-where A: Graph<Item = U, Iterator = B>,
-      B: Iterator<Item = (usize,U)>,
+where A: AccGraph<Value = U>,
       U: Copy + Ord + Add + Sub<Output = U> + Zero + AddAssign + SubAssign,
 {
     let mut que = VecDeque::new();
     let mut arrived = vec![None; size];
     que.push_back(s);
     while let Some(from) = que.pop_front() {
-        for (to, _) in res.iter(from) {
+        for (to, _) in res.neighbors(from) {
             if arrived[to].is_none() {
                 arrived[to] = Some(from);
                 que.push_back(to);
@@ -74,15 +67,14 @@ where A: Graph<Item = U, Iterator = B>,
     None
 }
 
-fn augment_along_pass<A,B,U>(
+fn augment_along_pass<A,U>(
     pass: &Vec<(usize, usize)>,
     flow: &mut A,
     g_f: &mut A,
     g: U,
     graph: &A,
 )
-where A: Graph<Item = U, Iterator = B>,
-      B: Iterator<Item = (usize,U)>,
+where A: AccGraph<Value = U>,
       U: Copy + Ord + Add + Sub<Output = U> + Zero + AddAssign + SubAssign,
 {
         let plus = |x| {

@@ -37,14 +37,11 @@ impl<U: PartialEq + Copy> PartialEq for Pair<U> {
 
 impl<U:PartialEq + Copy> Eq for Pair<U> {}
 
-pub fn solve<U,B>(
-    graph: &impl Graph<Item =U, Iterator = B>, 
+pub fn solve<U: Add + Zero + PartialOrd + Copy + PartialEq, A: Graph<Value = U>>(
+    graph: &A, 
     start: usize
-) -> Vec<Option<(U, usize)>>
-    where U: Add + Zero + PartialOrd + Copy + PartialEq, 
-          B: Iterator<Item = (usize,U)>
-{
-    let size = graph.len();
+) -> Vec<Option<(U, usize)>> {
+    let size = graph.size();
     let mut potential = vec![None; size];
     potential[start] = Some((U::zero(), 0));
     let mut heap = BinaryHeap::new();
@@ -55,7 +52,7 @@ pub fn solve<U,B>(
         if !set[pair.label] {
             set[pair.label] = true;
             count += 1;
-            for (v, weight) in graph.iter(pair.label) {
+            for (v,weight) in graph.neighbors(pair.label) {
                 if !set[v] && (potential[v].is_none() || potential[v].map(|x| x.0) > potential[pair.label].map(|x| x.0+weight)) {
                     potential[v] = Some((potential[pair.label].unwrap().0 + weight, pair.label));
                     heap.push(Reverse(Pair::new(v, potential[v].unwrap().0)));
@@ -69,6 +66,7 @@ pub fn solve<U,B>(
     potential
 }
 
+/*
 pub fn solve_with_goal<A,B,U> (graph: &impl Graph<Item = U,Iterator = B>, start: usize, goal: usize) -> Option<(U,Vec<(usize,usize)>)>
     where U: Add + Zero + PartialOrd + Copy + PartialEq,
           B: Iterator<Item = (usize,U)>
@@ -103,3 +101,4 @@ pub fn solve_with_goal<A,B,U> (graph: &impl Graph<Item = U,Iterator = B>, start:
     }
     None
 }
+*/

@@ -1,4 +1,4 @@
-use crate::graph::Graph;
+use crate::graph::*;
 use std::fmt::Debug;
 use std::ops::{Add,AddAssign,Sub,SubAssign};
 use num::{Signed,Zero};
@@ -10,9 +10,8 @@ pub struct MinCostFlow<A,U> {
     b: Vec<U>
 }
 
-impl<A,B,U> MinCostFlow<A,U>
-    where  A: Graph<Item = (U,U), Iterator = B> + Clone,
-           B: Iterator<Item = (usize,(U,U))>,
+impl<A,U> MinCostFlow<A,U>
+    where  A: AccGraph<Value = (U,U)>,
            U: Debug + PartialOrd + Copy + Zero + Add + AddAssign + Sub + SubAssign + Signed,
 {
     pub fn new(graph: A, b: Vec<U>) -> Self {
@@ -22,17 +21,16 @@ impl<A,B,U> MinCostFlow<A,U>
         }
     }
 
-    pub fn min_cost_flow<C,D>(&self) -> Option<(U,C)>
-        where C: Graph<Item = U, Iterator = D>,
-              D: Iterator<Item = (usize,U)>,
+    pub fn min_cost_flow<C>(&self) -> Option<(U,C)>
+        where C: AccGraph<Value = U>,
     {
         let xx: Option<C> = successive_shortest_path::solve(&self.graph,&self.b);
         match xx {
             None => None,
             Some(flow) => {
                 let mut ans = U::zero();
-                for from in 0..self.graph.len() {
-                    for (to,(_,cost)) in self.graph.iter(from) {
+                for from in 0..self.graph.size() {
+                    for (to,(_,cost)) in self.graph.neighbors(from) {
                         ans += cost*flow.get(from,to).unwrap();
                     }
                 }
@@ -49,9 +47,8 @@ pub struct MinCostFlowST<A,U> {
     f: U
 }
 
-impl<A,B,U> MinCostFlowST<A,U>
-    where  A: Graph<Item = (U,U), Iterator = B>,
-           B: Iterator<Item = (usize,(U,U))>,
+impl<A,U> MinCostFlowST<A,U>
+    where  A: AccGraph<Value = (U,U)>,
            U: Debug + PartialOrd + Copy + Zero + Add + AddAssign + Sub + SubAssign + Signed,
 {
     pub fn new(graph: A, source: usize, sink: usize, amount: U) -> Self {
@@ -63,17 +60,16 @@ impl<A,B,U> MinCostFlowST<A,U>
         }
     }
 
-    pub fn min_cost_flow<C,D>(&self) -> Option<(U,C)>
-        where C: Graph<Item = U, Iterator = D>,
-              D: Iterator<Item = (usize,U)>,
+    pub fn min_cost_flow<C>(&self) -> Option<(U,C)>
+        where C: AccGraph<Value = U>,
     {
         let xx: Option<C> = successive_shortest_path::solve_st(&self.graph,self.s,self.t,self.f);
         match xx {
             None => None,
             Some(flow) => {
                 let mut ans = U::zero();
-                for from in 0..self.graph.len() {
-                    for (to,(_,cost)) in self.graph.iter(from) {
+                for from in 0..self.graph.size() {
+                    for (to,(_,cost)) in self.graph.neighbors(from) {
                         ans += cost*flow.get(from,to).unwrap();
                     }
                 }
@@ -86,8 +82,8 @@ impl<A,B,U> MinCostFlowST<A,U>
 
 #[test]
 fn test1vec() {
-    use crate::graph::GraphVec;
-    let mut graph = GraphVec::new(5);
+    use crate::graph::MapGraph;
+    let mut graph = MapGraph::new(5);
     graph.add_edge(0,1,(10,2));
     graph.add_edge(0,2,(2,4));
     graph.add_edge(1,2,(6,6));
@@ -95,7 +91,7 @@ fn test1vec() {
     graph.add_edge(3,2,(3,3));
     graph.add_edge(2,4,(5,2));
     graph.add_edge(3,4,(8,6));
-    let problem: Option<(i64,GraphVec<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
+    let problem: Option<(i64,MapGraph<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
     match problem {
         None => unreachable!(),
         Some(xx) => {
@@ -106,8 +102,8 @@ fn test1vec() {
 
 #[test]
 fn test1set() {
-    use crate::graph::GraphSet;
-    let mut graph = GraphSet::new(5);
+    use crate::graph::*;
+    let mut graph = MatGraph::new(5);
     graph.add_edge(0,1,(10,2));
     graph.add_edge(0,2,(2,4));
     graph.add_edge(1,2,(6,6));
@@ -116,7 +112,7 @@ fn test1set() {
     graph.add_edge(2,4,(5,2));
     graph.add_edge(3,4,(8,6));
     dbg!(&graph);
-    let problem: Option<(i64,GraphSet<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
+    let problem: Option<(i64,MatGraph<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
     match problem {
         None => unreachable!(),
         Some(xx) => {
@@ -127,8 +123,8 @@ fn test1set() {
 
 #[test]
 fn test1map() {
-    use crate::graph::GraphMap;
-    let mut graph = GraphMap::new(5);
+    use crate::graph::*;
+    let mut graph = MapGraph::new(5);
     graph.add_edge(0,1,(10,2));
     graph.add_edge(0,2,(2,4));
     graph.add_edge(1,2,(6,6));
@@ -136,8 +132,7 @@ fn test1map() {
     graph.add_edge(3,2,(3,3));
     graph.add_edge(2,4,(5,2));
     graph.add_edge(3,4,(8,6));
-    dbg!(&graph);
-    let problem: Option<(i64,GraphMap<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
+    let problem: Option<(i64,MapGraph<i64>)> = MinCostFlowST::new(graph,0,4,9).min_cost_flow();
     match problem {
         None => unreachable!(),
         Some(xx) => {
@@ -148,8 +143,8 @@ fn test1map() {
 
 #[test]
 fn test2() {
-    use crate::graph::GraphVec;
-    let mut graph = GraphVec::new(6);
+    use crate::graph::*;
+    let mut graph = MatGraph::new(6);
     graph.add_edge(0,1,(3,2));
     graph.add_edge(0,2,(2,1));
     graph.add_edge(1,2,(2,2));
@@ -159,14 +154,14 @@ fn test2() {
     graph.add_edge(3,4,(2,2));
     graph.add_edge(3,5,(6,3));
     graph.add_edge(4,5,(10,2));
-    let problem: Option<(i64,GraphVec<i64>)> = MinCostFlowST::new(graph,0,5,6).min_cost_flow();
+    let problem: Option<(i64,MatGraph<i64>)> = MinCostFlowST::new(graph,0,5,6).min_cost_flow();
     assert!(problem.is_none())
 }
 
 #[test]
 fn test3() {
-    use crate::graph::GraphVec;
-    let mut graph = GraphVec::new(5);
+    use crate::graph::*;
+    let mut graph = MapGraph::new(5);
     graph.add_edge(0,1,(10,2));
     graph.add_edge(0,2,(2,4));
     graph.add_edge(1,2,(6,6));
@@ -175,7 +170,7 @@ fn test3() {
     graph.add_edge(2,4,(5,2));
     graph.add_edge(3,4,(8,6));
     let b = vec![9,0,0,0,-9];
-    let problem: Option<(i64,GraphVec<i64>)> = MinCostFlow::new(graph,b).min_cost_flow();
+    let problem: Option<(i64,MapGraph<i64>)> = MinCostFlow::new(graph,b).min_cost_flow();
     match problem {
         None => unreachable!(),
         Some(xx) => {
