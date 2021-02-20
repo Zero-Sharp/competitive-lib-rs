@@ -6,7 +6,7 @@ use num::Zero;
 use crate::graph::Graph;
 
 #[derive(Clone, Copy)]
-struct Pair<U> {
+pub struct Pair<U> {
     label: usize,
     value: U,
 }
@@ -66,12 +66,13 @@ pub fn solve<U: Add + Zero + PartialOrd + Copy + PartialEq, A: Graph<Value = U>>
     potential
 }
 
-/*
-pub fn solve_with_goal<A,B,U> (graph: &impl Graph<Item = U,Iterator = B>, start: usize, goal: usize) -> Option<(U,Vec<(usize,usize)>)>
-    where U: Add + Zero + PartialOrd + Copy + PartialEq,
-          B: Iterator<Item = (usize,U)>
-{
-    let size = graph.len();
+
+pub fn solve_with_goal<U: Add + Zero + PartialOrd + Copy + PartialEq, A: Graph<Value = U>> (
+    graph: &A, 
+    start: usize, 
+    goal: usize
+) -> Option<(U,Vec<(usize,usize)>)> {
+    let size = graph.size();
     let mut potential = vec![None; size];
     potential[start] = Some((U::zero(), 0));
     let mut heap = BinaryHeap::new();
@@ -80,14 +81,15 @@ pub fn solve_with_goal<A,B,U> (graph: &impl Graph<Item = U,Iterator = B>, start:
     while let Some(Reverse(pair)) = heap.pop() {
         if !set[pair.label] {
             set[pair.label] = true;
-            for (v, weight) in graph.iter(pair.label) {
+            for (v, weight) in graph.neighbors(pair.label) {
                 if !set[v] && (potential[v].is_none() || potential[v].map(|x| x.0) > potential[pair.label].map(|x| x.0+weight)) {
                     potential[v] = Some((potential[pair.label].unwrap().0 + weight, pair.label));
                     heap.push(Reverse(Pair::new(v, potential[v].unwrap().0)));
                 }
             }
         }
-        if let Some((val,from)) = potential[goal] {
+        if set[goal] {
+            let (val,from) = potential[goal].unwrap();
             let mut from = from;
             let mut to = goal;
             let mut pass = Vec::new();
@@ -101,4 +103,3 @@ pub fn solve_with_goal<A,B,U> (graph: &impl Graph<Item = U,Iterator = B>, start:
     }
     None
 }
-*/
