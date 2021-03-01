@@ -1,4 +1,4 @@
-mod edmonds_karp;
+pub mod edmonds_karp;
 
 #[test]
 fn test1() {
