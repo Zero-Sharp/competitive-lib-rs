@@ -28,7 +28,6 @@ where A: AccGraph<Value = U>,
 }
 
 fn bfs<A,U>(
-    size: usize,
     res: &A,
     s: usize,
     t: usize,
@@ -36,49 +35,68 @@ fn bfs<A,U>(
 where A: AccGraph<Value = U>,
       U: Copy + Ord + Add + Sub<Output = U> + Zero + AddAssign + SubAssign,
 {
-    let mut ret = A::new(res.size());
-    let mut arrived = vec![None; size];
+    let mut lvl = A::new(res.size());
     let mut now = vec![s];
     let mut next = Vec::new();
     let mut end = false;
+    let mut arrived = vec![false; res.size()];
+    arrived[s] = true;
     loop {
+        let mut now_arrived = BTreeSet::new();
         while let Some(from) = now.pop() {
-            for (to, _) in res.neighbors(from) {
+            for (to, val) in res.neighbors(from) {
                 if to == t {
                     end = true;
-                    let mut vv = Vec::new();
-                    let mut to = t;
-                    let mut from = from;
-                    let mut g = res.get(from,to).unwrap();
-                    loop {
-                        vv.push((from,to));
-                        g = min(g,res.get(from,to).unwrap());
-                        if from == s {
-                            break;
-                        }
-                        to = from;
-                        from = arrived[from].unwrap();
-                    }
-                    for (from,to) in vv {
-                        ret.modify(from,to,|x| Some(x.unwrap_or(U::zero())+g));
-                    }
-                } else if arrived[to].is_none() {
-                    arrived[to] = Some(from);
+                }
+                if !arrived[to] {
+                    lvl.add_edge(to,from,val);
+                    now_arrived.insert(to);
                     next.push(to);
                 }
             }
         }
         if end {
-            return Some(ret)
+            break;
         }
         if !next.is_empty() {
             swap(&mut now, &mut next);
+            for n in now_arrived {
+                arrived[n] = true;
+            }
             continue;
         } else {
             return None
         }
-        
     }
+    let mut ret = A::new(res.size());
+    let mut stack = vec![t];
+    let mut prev = vec![t;res.size()];
+    while let Some(from) = stack.pop() {
+        for (to,_) in lvl.neighbors(from) {
+            if to == s {
+                let mut path = Vec::new();
+                let mut to = to;
+                let mut from = from;
+                let mut g = lvl.get(from,to).unwrap();
+                loop {
+                    path.push((from,to));
+                    g = min(g,lvl.get(from,to).unwrap());
+                    if from == t {
+                        break;
+                    }
+                    to = from;
+                    from = prev[from];
+                }
+                for (from,to) in path {
+                    ret.modify(to,from, |x| Some(x.unwrap_or(U::zero())+g));
+                }
+            } else {
+                prev[to] = from;
+                stack.push(to);
+            }
+        }
+    }
+    Some(ret)
 }
 
 fn augment_along_pass<A,U>(
