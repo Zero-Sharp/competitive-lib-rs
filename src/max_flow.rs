@@ -1,4 +1,5 @@
 pub mod edmonds_karp;
+pub mod dinic;
 
 #[test]
 fn test1() {
