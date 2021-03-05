@@ -333,5 +333,77 @@ impl<U: Copy> Iterator for GraphIter<U> {
         }
     }
 }
-
 */
+
+pub struct Residual<A> {
+    forward: A,
+    back: A,
+}
+
+#[derive(Copy,Clone)]
+pub enum Either {
+    Forward,
+    Back,
+}
+
+#[derive(Clone,Copy)]
+pub enum EitherV<A> {
+    Forward(A),
+    Back(A),
+}
+
+impl<A> EitherV<A> {
+    pub fn unwrap(self) -> A {
+        match self {
+            EitherV::Forward(x) => x,
+            EitherV::Back(x) => x,
+        }
+    }
+    pub fn label(self) -> Either {
+        match self {
+            EitherV::Forward(_x) => Either::Forward,
+            EitherV::Back(_x) => Either::Back,
+        }
+    }
+}
+
+impl<A: AccGraph> Residual<A> {
+    pub fn new(n: usize) -> Self {
+        Residual {
+            forward: A::new(n),
+            back: A::new(n),
+        }
+    }
+    pub fn new_from_graph(graph: &A) -> Self {
+        Residual {
+            forward: graph.clone(),
+            back: A::new(graph.size()),
+        }
+    }
+    pub fn size(&self) -> usize {
+        self.forward.size()
+    }
+    pub fn get(&self, which: Either, u: usize, v: usize) -> Option<A::Value> {
+        match which {
+            Either::Forward => self.forward.get(u,v),
+            Either::Back => self.back.get(u,v),
+        }
+    }
+    pub fn neighbors(&self, u: usize) -> impl Iterator<Item = (usize,EitherV<A::Value>)> {
+        let x = self.forward.neighbors(u);
+        let y = self.back.neighbors(u);
+        x.map(|(i,x)| (i,EitherV::Forward(x))).chain(y.map(|(i,x)| (i,EitherV::Back(x))))
+    }
+    pub fn add_edge(&mut self, u: usize, v: usize, w: EitherV<A::Value>) {
+        match w {
+            EitherV::Forward(x) => self.forward.add_edge(u,v,x),
+            EitherV::Back(x) => self.back.add_edge(u,v,x),
+        }
+    }
+    pub fn modify(&mut self, which: Either, u: usize, v: usize, update: impl Fn(Option<A::Value>) -> Option<A::Value>) {
+        match which {
+            Either::Forward => self.forward.modify(u,v,update),
+            Either::Back => self.back.modify(u,v,update),
+        }
+    }
+}
